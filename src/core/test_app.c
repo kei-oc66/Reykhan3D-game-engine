@@ -32,6 +32,7 @@ VkImage *swapChainImages;
 uint32_t swapChainImagesCount;
 VkFormat swapChainImageFormat;
 VkExtent2D swapChainExtent;
+VkImageView *swapChainImageViews;
 
 VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 
@@ -67,6 +68,11 @@ typedef struct {
   uint32_t presentModeCount;
 } SwapChainSupportDetails;
 
+typedef struct {
+  char *data;
+  size_t size;
+} FileData;
+
 static void freeSwapChainSupportDetails(SwapChainSupportDetails *details);
 SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
 
@@ -89,7 +95,7 @@ static int checkValidationLayerSupport(void) {
   vkEnumerateInstanceLayerProperties(&layerCount, availableLayers);
 
   for (uint32_t i = 0; i < validationLayerCount; i++) {
-    int layerFound = 0; // FIX 2: was 1, logic was inverted
+    int layerFound = 0;
 
     for (uint32_t j = 0; j < layerCount; j++) {
       if (strcmp(validationLayers[i], availableLayers[j].layerName) == 0) {
@@ -454,6 +460,110 @@ static int createSurface(void) {
   return 0;
 }
 
+static int createImageViews(void) {
+  swapChainImageViews = malloc(sizeof(VkImageView) * swapChainImagesCount);
+  if (!swapChainImageViews)
+    return -1;
+  for (uint32_t i = 0; i < swapChainImagesCount; i++) {
+    VkImageViewCreateInfo createInfo = {0};
+    createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    createInfo.image = swapChainImages[i];
+    createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    createInfo.format = swapChainImageFormat;
+
+    createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+    createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+    createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+    createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+    createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    createInfo.subresourceRange.baseMipLevel = 0;
+    createInfo.subresourceRange.levelCount = 1;
+    createInfo.subresourceRange.baseArrayLayer = 0;
+    createInfo.subresourceRange.layerCount = 1;
+
+    if (vkCreateImageView(device, &createInfo, NULL, &swapChainImageViews[i]) !=
+        VK_SUCCESS) {
+      printf("failed to create image views!\n");
+      return -1;
+    }
+  }
+
+  return 0;
+}
+
+static FileData readFile(const char *fileName) {
+  FileData result = {0};
+
+  FILE *file = fopen(fileName, "rb"); //    rb  =  read binary
+  if (!file) {
+    printf("failed to open file: %s\n", fileName);
+    return result;
+  }
+
+  fseek(file, 0, SEEK_END);
+  result.size = ftell(file);
+  rewind(file);
+
+  result.data = malloc(result.size);
+  fread(result.data, 1, result.size, file);
+
+  fclose(file);
+  return result;
+}
+
+VkShaderModule createShaderModule(FileData *code) {
+  VkShaderModuleCreateInfo createInfo = {0};
+  createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+  createInfo.codeSize = code->size;
+  createInfo.pCode = (const uint32_t *)code->data;
+
+  VkShaderModule shaderModule;
+  if (vkCreateShaderModule(device, &createInfo, NULL, &shaderModule) !=
+      VK_SUCCESS) {
+    printf("failed to create shader module!\n");
+    return VK_NULL_HANDLE;
+  }
+
+  return shaderModule;
+}
+
+static int createGraphicsPipeline(void) {
+  FileData vertShader = readFile("out/build/shaders/vertex/vert.spv");
+  FileData fragShader = readFile("out/build/shaders/fragment/frag.spv");
+
+  printf("vert shader size: %zu bytes\n", vertShader.size);
+  printf("frag shader size: %zu bytes\n", fragShader.size);
+
+  VkShaderModule vertShaderModule = createShaderModule(&vertShader);
+  VkShaderModule fragShaderModule = createShaderModule(&fragShader);
+
+  free(vertShader.data);
+  free(fragShader.data);
+
+  VkPipelineShaderStageCreateInfo vertShaderStageInfo = {0};
+  vertShaderStageInfo.sType =
+      VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+  vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+  vertShaderStageInfo.module = vertShaderModule;
+  vertShaderStageInfo.pName = "main";
+
+  VkPipelineShaderStageCreateInfo fragShaderStageInfo = {0};
+  fragShaderStageInfo.sType =
+      VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+  fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+  fragShaderStageInfo.module = fragShaderModule;
+  fragShaderStageInfo.pName = "main";
+
+  VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo,
+                                                    fragShaderStageInfo};
+
+  vkDestroyShaderModule(device, fragShaderModule, NULL);
+  vkDestroyShaderModule(device, vertShaderModule, NULL);
+
+  return 0;
+}
+
 static int initVulkan(void) {
   if (createInstance() != 0)
     return -1;
@@ -465,6 +575,10 @@ static int initVulkan(void) {
     return -1;
   if (createSwapChain() != 0)
     return -1;
+  if (createImageViews() != 0)
+    return -1;
+  if (createGraphicsPipeline() != 0)
+    return -1;
   return 0;
 }
 
@@ -475,8 +589,14 @@ static void mainLoop(void) {
 }
 
 static void cleanUp(void) {
-  free(swapChainImages);
+  for (uint32_t i = 0; i < swapChainImagesCount; i++) {
+    vkDestroyImageView(device, swapChainImageViews[i], NULL);
+  }
+  free(swapChainImageViews);
+
   vkDestroySwapchainKHR(device, swapChain, NULL);
+  free(swapChainImages);
+
   vkDestroyDevice(device, NULL);
   vkDestroySurfaceKHR(instance, surface, NULL);
   vkDestroyInstance(instance, NULL);
