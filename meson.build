@@ -24,7 +24,16 @@ frag_shader = custom_target('frag_shader',
 )
 
 executable('vulkan_demo',
-           'main.c',
-           'src/core/test_app.c',
+           'src/main.c',
+           'src/core/window.c',
+           'src/core/instance.c',
+           'src/core/device.c',
+           'src/core/surface.c',
+           'src/core/swapchain.c',
+           'src/core/pipeline.c',
+           'src/core/renderpass.c',
+           'src/core/commands.c',
+           'src/core/sync.c',
+           'src/application/test_app.c',
            include_directories : include_directories('include'),
            dependencies : [vulkan_dep, glfw_dep])
