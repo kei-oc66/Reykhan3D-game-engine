@@ -5,8 +5,10 @@
 #include "core/window.h"
 
 //  std
+#include <GLFW/glfw3.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <vulkan/vulkan_core.h>
 
 #define CLAMP(val, min, max)                                                   \
   ((val) < (min) ? (min) : ((val) > (max) ? (max) : (max)))
@@ -121,7 +123,7 @@ static VkSurfaceFormatKHR
 chooseSwapSurfaceFormat(const VkSurfaceFormatKHR *availableFormats,
                         uint32_t formatCount) {
   for (uint32_t i = 0; i < formatCount; i++) {
-    if (availableFormats[i].format == VK_FORMAT_B8G8R8A8_SRGB &&
+    if (availableFormats[i].format == VK_FORMAT_B8G8R8A8_UNORM &&
         availableFormats->colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
       return availableFormats[i];
     }
@@ -234,4 +236,27 @@ void destroySwapChainFrameBuffers(void) {
     vkDestroyFramebuffer(device, swapChainFramebuffers[i], NULL);
   }
   free(swapChainFramebuffers);
+}
+
+int recreateSwapChain(void) {
+  int width = 0, height = 0;
+  glfwGetFramebufferSize(window, &width, &height);
+  while (width == 0 || height == 0) {
+    glfwGetFramebufferSize(window, &width, &height);
+    glfwWaitEvents();
+  }
+
+  vkDeviceWaitIdle(device);
+
+  destroySwapChainFrameBuffers();
+  destroySwapChain();
+
+  if (createSwapChain() != 0)
+    return -1;
+  if (createImageViews() != 0)
+    return -1;
+  if (createFrameBuffers() != 0)
+    return -1;
+
+  return 0;
 }

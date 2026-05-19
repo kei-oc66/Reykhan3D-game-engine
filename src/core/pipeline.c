@@ -1,6 +1,7 @@
 #include "core/pipeline.h"
 #include "core/device.h"
 #include "core/renderpass.h"
+#include "renderer/vertex.h"
 
 //  std
 #include <stdlib.h>
@@ -49,13 +50,17 @@ int createGraphicsPipeline(void) {
   dynamicState.dynamicStateCount = 2;
   dynamicState.pDynamicStates = dynamicStates;
 
+  VkVertexInputBindingDescription bindingDescription =
+      vertexGetBindingDescription();
+  VkVertexInputAttributeDescription attributeDescriptions[2];
+  vertexGetAttributeDescriptions(attributeDescriptions);
   VkPipelineVertexInputStateCreateInfo vertexInputInfo = {0};
   vertexInputInfo.sType =
       VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-  vertexInputInfo.vertexBindingDescriptionCount = 0;
-  vertexInputInfo.pVertexBindingDescriptions = NULL;
-  vertexInputInfo.vertexAttributeDescriptionCount = 0;
-  vertexInputInfo.pVertexAttributeDescriptions = NULL;
+  vertexInputInfo.vertexBindingDescriptionCount = 1;
+  vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+  vertexInputInfo.vertexAttributeDescriptionCount = 2;
+  vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions;
 
   VkPipelineInputAssemblyStateCreateInfo inputAssembly = {0};
   inputAssembly.sType =
@@ -64,7 +69,10 @@ int createGraphicsPipeline(void) {
   inputAssembly.primitiveRestartEnable = VK_FALSE;
 
   VkPipelineViewportStateCreateInfo viewportState = {0};
+  viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+  viewportState.viewportCount = 1;
   viewportState.pViewports = NULL;
+  viewportState.scissorCount = 1;
   viewportState.pScissors = NULL;
 
   VkPipelineRasterizationStateCreateInfo rasterizer = {0};

@@ -9,6 +9,8 @@ glfw_dep = dependency('glfw3')
 
 glslc = find_program('glslc')
 
+cglm_dep = dependency('cglm')
+
 vert_shader = custom_target('vert_shader',
     input: 'shaders/vertex/shader.vert',
     output: 'vert.spv',
@@ -34,6 +36,10 @@ executable('vulkan_demo',
            'src/core/renderpass.c',
            'src/core/commands.c',
            'src/core/sync.c',
+           'src/core/vertex_buffer.c',
+           'src/core/index_buffer.c',
            'src/application/test_app.c',
+           'src/renderer/vertex.c',
            include_directories : include_directories('include'),
-           dependencies : [vulkan_dep, glfw_dep])
+           dependencies : [vulkan_dep, glfw_dep, cglm_dep]
+           )

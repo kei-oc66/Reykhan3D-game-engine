@@ -1,13 +1,17 @@
 #include "application/test_app.h"
 
+#include <vulkan/vulkan_core.h>
+
 #include "core/commands.h"
 #include "core/device.h"
+#include "core/index_buffer.h"
 #include "core/instance.h"
 #include "core/pipeline.h"
 #include "core/renderpass.h"
 #include "core/surface.h"
 #include "core/swapchain.h"
 #include "core/sync.h"
+#include "core/vertex_buffer.h"
 #include "core/window.h"
 
 static int initVulkan(void) {
@@ -31,6 +35,10 @@ static int initVulkan(void) {
     return -1;
   if (createCommandPool() != 0)
     return -1;
+  if (createVertexBuffer() != 0)
+    return -1;
+  if (createIndexBuffer() != 0)
+    return -1;
   if (createCommandBuffer() != 0)
     return -1;
   if (createSyncObjects() != 0)
@@ -40,11 +48,21 @@ static int initVulkan(void) {
 
 static int drawFrame(void) {
   vkWaitForFences(device, 1, &inFlightFence, VK_TRUE, UINT64_MAX);
-  vkResetFences(device, 1, &inFlightFence);
 
   uint32_t imageIndex;
-  vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphore,
-                        VK_NULL_HANDLE, &imageIndex);
+  VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX,
+                                          imageAvailableSemaphore,
+                                          VK_NULL_HANDLE, &imageIndex);
+
+  if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+    recreateSwapChain();
+    return 0;
+  } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+    printf("failed to acquire swap chain image!\n");
+    return -1;
+  }
+
+  vkResetFences(device, 1, &inFlightFence);
 
   vkResetCommandBuffer(commandBuffer, 0);
   recordCommandBuffer(commandBuffer, imageIndex);
@@ -73,7 +91,6 @@ static int drawFrame(void) {
 
   VkPresentInfoKHR presentInfo = {0};
   presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-
   presentInfo.waitSemaphoreCount = 1;
   presentInfo.pWaitSemaphores = signalSemaphores;
 
@@ -83,7 +100,16 @@ static int drawFrame(void) {
   presentInfo.pImageIndices = &imageIndex;
   presentInfo.pResults = NULL;
 
-  vkQueuePresentKHR(presentQueue, &presentInfo);
+  result = vkQueuePresentKHR(presentQueue, &presentInfo);
+
+  if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ||
+      isFrameBufferResized()) {
+    resetFramebufferResized();
+    recreateSwapChain();
+  } else if (result != VK_SUCCESS) {
+    printf("failed to present swap chain image!\n");
+    return -1;
+  }
 
   return 0;
 }
@@ -104,6 +130,8 @@ static void cleanUp(void) {
   destroyPipeLine();
   destroyRenderPass();
   destroySwapChain();
+  destroyIndexBuffer();
+  destroyVertexBuffer();
   destroyDevice();
   destroySurface();
   destroyInstance();

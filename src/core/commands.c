@@ -3,10 +3,13 @@
 #include "core/pipeline.h"
 #include "core/renderpass.h"
 #include "core/swapchain.h"
+#include "core/vertex_buffer.h"
+#include "renderer/vertex.h"
 
 //  std
 #include <stdio.h>
 #include <stdlib.h>
+#include <vulkan/vulkan_core.h>
 
 VkCommandPool commandPool;
 VkCommandBuffer commandBuffer;
@@ -84,7 +87,16 @@ int recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
   scissor.extent = swapChainExtent;
   vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-  vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+  VkBuffer vertexBuffers[] = {vertexBuffer};
+  VkDeviceSize offsets[] = {0};
+  vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+
+  extern VkBuffer indexBuffer;
+  vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+
+  extern uint32_t indicesCount;
+  vkCmdDrawIndexed(commandBuffer, indicesCount, 1, 0, 0, 0);
+
   vkCmdEndRenderPass(commandBuffer);
 
   if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {

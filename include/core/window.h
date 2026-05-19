@@ -11,5 +11,8 @@
 
 extern GLFWwindow *window;
 
+int isFrameBufferResized(void);
+void resetFramebufferResized(void);
+
 void initWindow(void);
 void destroyWindow(void);

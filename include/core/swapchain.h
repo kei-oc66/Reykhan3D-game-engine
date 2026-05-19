@@ -32,3 +32,5 @@ int createFrameBuffers(void);
 
 void destroySwapChain(void);
 void destroySwapChainFrameBuffers(void);
+
+int recreateSwapChain(void);
