@@ -11,8 +11,11 @@
 #include "core/surface.h"
 #include "core/swapchain.h"
 #include "core/sync.h"
+#include "core/uniform_buffer.h"
 #include "core/vertex_buffer.h"
 #include "core/window.h"
+
+static uint32_t currentFrame = 0;
 
 static int initVulkan(void) {
   if (createInstance() != 0)
@@ -29,30 +32,40 @@ static int initVulkan(void) {
     return -1;
   if (createRenderPass() != 0)
     return -1;
+  if (createDescriptorSetLayout() != 0)
+    return -1;
   if (createGraphicsPipeline() != 0)
     return -1;
   if (createFrameBuffers() != 0)
     return -1;
   if (createCommandPool() != 0)
     return -1;
+  if (createCommandBuffer() != 0)
+    return -1;
   if (createVertexBuffer() != 0)
     return -1;
   if (createIndexBuffer() != 0)
     return -1;
-  if (createCommandBuffer() != 0)
+  if (createUniformBuffers() != 0)
+    return -1;
+  if (createDescriptorPool() != 0)
+    return -1;
+  if (createDescriptorSets() != 0)
     return -1;
   if (createSyncObjects() != 0)
     return -1;
+
   return 0;
 }
 
 static int drawFrame(void) {
-  vkWaitForFences(device, 1, &inFlightFence, VK_TRUE, UINT64_MAX);
+  vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE,
+                  UINT64_MAX);
 
   uint32_t imageIndex;
-  VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX,
-                                          imageAvailableSemaphore,
-                                          VK_NULL_HANDLE, &imageIndex);
+  VkResult result = vkAcquireNextImageKHR(
+      device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame],
+      VK_NULL_HANDLE, &imageIndex);
 
   if (result == VK_ERROR_OUT_OF_DATE_KHR) {
     recreateSwapChain();
@@ -62,29 +75,32 @@ static int drawFrame(void) {
     return -1;
   }
 
-  vkResetFences(device, 1, &inFlightFence);
+  updateUniformBuffer(currentFrame);
 
-  vkResetCommandBuffer(commandBuffer, 0);
-  recordCommandBuffer(commandBuffer, imageIndex);
+  vkResetFences(device, 1, &inFlightFences[currentFrame]);
+
+  extern VkCommandBuffer commandBuffers[];
+  vkResetCommandBuffer(commandBuffers[currentFrame], 0);
+  recordCommandBuffer(commandBuffers[currentFrame], imageIndex, currentFrame);
 
   VkSubmitInfo submitInfo = {0};
   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-  VkSemaphore waitSemaphores[] = {imageAvailableSemaphore};
+  VkSemaphore waitSemaphores[] = {imageAvailableSemaphores[currentFrame]};
   VkPipelineStageFlags waitStages[] = {
       VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
   submitInfo.waitSemaphoreCount = 1;
   submitInfo.pWaitSemaphores = waitSemaphores;
   submitInfo.pWaitDstStageMask = waitStages;
   submitInfo.commandBufferCount = 1;
-  submitInfo.pCommandBuffers = &commandBuffer;
+  submitInfo.pCommandBuffers = &commandBuffers[currentFrame];
 
-  VkSemaphore signalSemaphores[] = {renderFinishedSemaphore};
+  VkSemaphore signalSemaphores[] = {renderFinishedSemaphores[imageIndex]};
   submitInfo.signalSemaphoreCount = 1;
   submitInfo.pSignalSemaphores = signalSemaphores;
 
-  if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFence) !=
-      VK_SUCCESS) {
+  if (vkQueueSubmit(graphicsQueue, 1, &submitInfo,
+                    inFlightFences[currentFrame]) != VK_SUCCESS) {
     printf("failed to submit draw command buffer!\n");
     return -1;
   }
@@ -111,6 +127,8 @@ static int drawFrame(void) {
     return -1;
   }
 
+  currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+
   return 0;
 }
 
@@ -130,6 +148,7 @@ static void cleanUp(void) {
   destroyPipeLine();
   destroyRenderPass();
   destroySwapChain();
+  destroyUniformBuffer();
   destroyIndexBuffer();
   destroyVertexBuffer();
   destroyDevice();

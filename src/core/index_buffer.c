@@ -10,7 +10,6 @@
 VkBuffer indexBuffer;
 VkDeviceMemory indexBufferMemory;
 
-// Local version of memory finder to guarantee context access
 static uint32_t findLocalMemoryType(uint32_t typeFilter,
                                     VkMemoryPropertyFlags properties) {
   VkPhysicalDeviceMemoryProperties memProperties;
@@ -26,11 +25,10 @@ static uint32_t findLocalMemoryType(uint32_t typeFilter,
 }
 
 int createIndexBuffer(void) {
-  VkDeviceSize bufferSize = sizeof(indices[0]) * indicesCount;
+  VkDeviceSize bufferSize = sizeof(uint16_t) * indicesCount;
 
-  // --- 1. Create Staging Buffer ---
-  VkBuffer stagingBuffer;
-  VkDeviceMemory stagingBufferMemory;
+  VkBuffer stagingBuffer = VK_NULL_HANDLE;
+  VkDeviceMemory stagingBufferMemory = VK_NULL_HANDLE;
 
   VkBufferCreateInfo bufferInfo = {0};
   bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -39,7 +37,7 @@ int createIndexBuffer(void) {
   bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
   if (vkCreateBuffer(device, &bufferInfo, NULL, &stagingBuffer) != VK_SUCCESS) {
-    printf("ERROR: Failed to create index staging buffer!\n");
+    printf("failed to create index staging buffer!\n");
     return -1;
   }
 
@@ -55,23 +53,19 @@ int createIndexBuffer(void) {
 
   if (vkAllocateMemory(device, &allocInfo, NULL, &stagingBufferMemory) !=
       VK_SUCCESS) {
-    printf("ERROR: Failed to allocate index staging buffer memory!\n");
+    printf("failed to allocate index staging buffer memory!\n");
     return -1;
   }
 
   vkBindBufferMemory(device, stagingBuffer, stagingBufferMemory, 0);
 
-  printf("--> About to map INDEX staging buffer!\n");
-  if (stagingBufferMemory == VK_NULL_HANDLE) {
-    printf("ERROR: Index staging memory is NULL!\n");
-  }
-
   void *data;
-  if (vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data) !=
-      VK_SUCCESS) {
-    printf("ERROR: vkMapMemory failed inside createIndexBuffer!\n");
+  if (vkMapMemory(device, stagingBufferMemory, 0, memRequirements.size, 0,
+                  &data) != VK_SUCCESS) {
+    printf("failed inside createIndexBuffer!\n");
     return -1;
   }
+
   memcpy(data, indices, (size_t)bufferSize);
   vkUnmapMemory(device, stagingBufferMemory);
 

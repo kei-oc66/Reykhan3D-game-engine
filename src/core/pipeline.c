@@ -1,6 +1,7 @@
 #include "core/pipeline.h"
 #include "core/device.h"
 #include "core/renderpass.h"
+#include "core/uniform_buffer.h"
 #include "renderer/vertex.h"
 
 //  std
@@ -82,7 +83,7 @@ int createGraphicsPipeline(void) {
   rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
   rasterizer.lineWidth = 1.0f;
   rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-  rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+  rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
   rasterizer.depthBiasEnable = VK_FALSE;
   rasterizer.depthBiasConstantFactor = 0.0f;
   rasterizer.depthBiasClamp = 0.0f;
@@ -124,8 +125,8 @@ int createGraphicsPipeline(void) {
 
   VkPipelineLayoutCreateInfo pipelineLayoutInfo = {0};
   pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-  pipelineLayoutInfo.setLayoutCount = 0;
-  pipelineLayoutInfo.pSetLayouts = NULL;
+  pipelineLayoutInfo.setLayoutCount = 1;
+  pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
   pipelineLayoutInfo.pushConstantRangeCount = 0;
   pipelineLayoutInfo.pPushConstantRanges = NULL;
 
@@ -202,6 +203,8 @@ static VkShaderModule createShaderModule(FileData *code) {
 }
 
 void destroyPipeLine(void) {
-
+  printf("destroying pipeline: %p\n", (void *)graphicsPipeline);
+  printf("destroying pipelineLayout: %p\n", (void *)pipelineLayout);
+  vkDestroyPipeline(device, graphicsPipeline, NULL);
   vkDestroyPipelineLayout(device, pipelineLayout, NULL);
 }

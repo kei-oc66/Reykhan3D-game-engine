@@ -1,12 +1,12 @@
 #pragma once
 
+#include "core/uniform_buffer.h"
 #include <vulkan/vulkan.h>
 
-extern VkCommandPool commandPool;
-extern VkCommandBuffer commandBuffer;
+extern VkCommandBuffer commandBuffers[MAX_FRAMES_IN_FLIGHT];
 
 int createCommandPool(void);
 int createCommandBuffer(void);
-int recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
-
+int recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex,
+                        uint32_t currentFrame);
 void destroyCommandPool(void);

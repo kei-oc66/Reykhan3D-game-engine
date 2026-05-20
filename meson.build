@@ -11,6 +11,8 @@ glslc = find_program('glslc')
 
 cglm_dep = dependency('cglm')
 
+m_dep = meson.get_compiler('c').find_library('m')
+
 vert_shader = custom_target('vert_shader',
     input: 'shaders/vertex/shader.vert',
     output: 'vert.spv',
@@ -38,8 +40,9 @@ executable('vulkan_demo',
            'src/core/sync.c',
            'src/core/vertex_buffer.c',
            'src/core/index_buffer.c',
+           'src/core/uniform_buffer.c',
            'src/application/test_app.c',
            'src/renderer/vertex.c',
            include_directories : include_directories('include'),
-           dependencies : [vulkan_dep, glfw_dep, cglm_dep]
+           dependencies : [vulkan_dep, glfw_dep, cglm_dep, m_dep]
            )

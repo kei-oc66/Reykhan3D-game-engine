@@ -8,6 +8,8 @@
 //  std
 #include <stdint.h>
 
+#define INDICES_COUNT 6
+
 typedef struct {
   vec2 pos;
   vec3 color;

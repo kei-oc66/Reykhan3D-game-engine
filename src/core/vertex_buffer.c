@@ -9,6 +9,8 @@
 VkBuffer vertexBuffer;
 VkDeviceMemory vertexBufferMemory;
 
+extern VkCommandPool commandPool;
+
 uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
   VkPhysicalDeviceMemoryProperties memProperties;
   vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
@@ -27,39 +29,77 @@ uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
   return 0;
 }
 
+int createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
+                 VkMemoryPropertyFlags properties, VkBuffer *buffer,
+                 VkDeviceMemory *bufferMemory) {
+  VkBufferCreateInfo bufferInfo = {0};
+  bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+  bufferInfo.size = size;
+  bufferInfo.usage = usage;
+  bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+  if (vkCreateBuffer(device, &bufferInfo, NULL, buffer) != VK_SUCCESS) {
+    printf("failed to create buffer!\n");
+    return -1;
+  }
+
+  VkMemoryRequirements memRequirements;
+  vkGetBufferMemoryRequirements(device, *buffer, &memRequirements);
+
+  VkMemoryAllocateInfo allocInfo = {0};
+  allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+  allocInfo.allocationSize = memRequirements.size;
+  allocInfo.memoryTypeIndex =
+      findMemoryType(memRequirements.memoryTypeBits, properties);
+
+  if (vkAllocateMemory(device, &allocInfo, NULL, bufferMemory) != VK_SUCCESS) {
+    printf("failed to allocate buffer memory!\n");
+    return -1;
+  }
+
+  vkBindBufferMemory(device, *buffer, *bufferMemory, 0);
+  return 0;
+}
+
 void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
+
   VkCommandBufferAllocateInfo allocInfo = {0};
   allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
   allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  extern VkCommandPool commandPool;
   allocInfo.commandPool = commandPool;
   allocInfo.commandBufferCount = 1;
 
-  VkCommandBuffer commandBuffer;
-  vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
+  VkCommandBuffer temporaryCommandBuffer;
+
+  if (vkAllocateCommandBuffers(device, &allocInfo, &temporaryCommandBuffer) !=
+      VK_SUCCESS) {
+    printf("failed to allocate temporary transfer command buffer!\n");
+    return;
+  }
 
   VkCommandBufferBeginInfo beginInfo = {0};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
   beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-  vkBeginCommandBuffer(commandBuffer, &beginInfo);
+  vkBeginCommandBuffer(temporaryCommandBuffer, &beginInfo);
 
   VkBufferCopy copyRegion = {0};
+  copyRegion.srcOffset = 0;
+  copyRegion.dstOffset = 0;
   copyRegion.size = size;
-  vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+  vkCmdCopyBuffer(temporaryCommandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
-  vkEndCommandBuffer(commandBuffer);
+  vkEndCommandBuffer(temporaryCommandBuffer);
 
   VkSubmitInfo submitInfo = {0};
   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
   submitInfo.commandBufferCount = 1;
-  submitInfo.pCommandBuffers = &commandBuffer;
+  submitInfo.pCommandBuffers = &temporaryCommandBuffer;
 
-  extern VkQueue graphicsQueue;
   vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-  vkQueueWaitIdle(graphicsQueue);
+  vkQueueWaitIdle(graphicsQueue); // Wait for the copy to finish immediately
 
-  vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
+  vkFreeCommandBuffers(device, commandPool, 1, &temporaryCommandBuffer);
 }
 
 int createVertexBuffer(void) {

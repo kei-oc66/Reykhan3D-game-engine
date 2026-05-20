@@ -8,11 +8,10 @@
 
 //  std
 #include <stdio.h>
-#include <stdlib.h>
 #include <vulkan/vulkan_core.h>
 
 VkCommandPool commandPool;
-VkCommandBuffer commandBuffer;
+VkCommandBuffer commandBuffers[MAX_FRAMES_IN_FLIGHT];
 
 int createCommandPool(void) {
   QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
@@ -36,9 +35,9 @@ int createCommandBuffer(void) {
   allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
   allocInfo.commandPool = commandPool;
   allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  allocInfo.commandBufferCount = 1;
+  allocInfo.commandBufferCount = (uint32_t)MAX_FRAMES_IN_FLIGHT;
 
-  if (vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer) !=
+  if (vkAllocateCommandBuffers(device, &allocInfo, commandBuffers) !=
       VK_SUCCESS) {
     printf("failed to allocate command buffers!\n");
     return -1;
@@ -47,7 +46,8 @@ int createCommandBuffer(void) {
   return 0;
 }
 
-int recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
+int recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex,
+                        uint32_t currentFrame) {
   VkCommandBufferBeginInfo beginInfo = {0};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
   beginInfo.flags = 0;
@@ -94,6 +94,13 @@ int recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
   extern VkBuffer indexBuffer;
   vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
+  extern VkPipelineLayout pipelineLayout;
+  extern VkDescriptorSet descriptorSets[];
+
+  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          pipelineLayout, 0, 1, &descriptorSets[currentFrame],
+                          0, NULL);
+
   extern uint32_t indicesCount;
   vkCmdDrawIndexed(commandBuffer, indicesCount, 1, 0, 0, 0);
 
@@ -108,6 +115,5 @@ int recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
 }
 
 void destroyCommandPool(void) {
-
   vkDestroyCommandPool(device, commandPool, NULL);
 }

@@ -1,13 +1,13 @@
 #include "renderer/vertex.h"
 
-Vertex vertices[] = {{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-                     {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+Vertex vertices[] = {{{-0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}},
+                     {{0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}},
                      {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-                     {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}};
+                     {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}};
 uint32_t vertexCount = 4;
 
 uint16_t indices[] = {0, 1, 2, 2, 3, 0};
-uint32_t indicesCount = 6;
+uint32_t indicesCount = INDICES_COUNT;
 
 VkVertexInputBindingDescription vertexGetBindingDescription(void) {
   VkVertexInputBindingDescription bindingDescription = {0};
