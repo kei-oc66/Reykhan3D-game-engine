@@ -1,7 +1,7 @@
 #include <vulkan/vulkan_core.h>
 
-#include "core/instance.h"
-#include "core/surface.h"
+#include "RHI/vulkan_instance.h"
+#include "RHI/vulkan_surface.h"
 #include "core/window.h"
 
 //  std

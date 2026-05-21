@@ -1,7 +1,7 @@
-#include "core/pipeline.h"
-#include "core/device.h"
-#include "core/renderpass.h"
-#include "core/uniform_buffer.h"
+#include "RHI/vulkan_pipeline.h"
+#include "RHI/vulkan_buffer.h"
+#include "RHI/vulkan_device.h"
+#include "RHI/vulkan_renderpass.h"
 #include "renderer/vertex.h"
 
 //  std

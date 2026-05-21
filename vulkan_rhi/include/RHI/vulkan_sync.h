@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/uniform_buffer.h"
+#include "RHI/vulkan_buffer.h"
 
 #include <vulkan/vulkan.h>
 

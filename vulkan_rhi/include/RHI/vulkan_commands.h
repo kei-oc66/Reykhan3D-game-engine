@@ -1,8 +1,9 @@
 #pragma once
 
-#include "core/uniform_buffer.h"
+#include "RHI/vulkan_buffer.h"
 #include <vulkan/vulkan.h>
 
+extern VkCommandPool commandPool;
 extern VkCommandBuffer commandBuffers[MAX_FRAMES_IN_FLIGHT];
 
 int createCommandPool(void);

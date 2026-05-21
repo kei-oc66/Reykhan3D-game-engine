@@ -2,17 +2,15 @@
 
 #include <vulkan/vulkan_core.h>
 
-#include "core/commands.h"
-#include "core/device.h"
-#include "core/index_buffer.h"
-#include "core/instance.h"
-#include "core/pipeline.h"
-#include "core/renderpass.h"
-#include "core/surface.h"
-#include "core/swapchain.h"
-#include "core/sync.h"
-#include "core/uniform_buffer.h"
-#include "core/vertex_buffer.h"
+#include "RHI/vulkan_buffer.h"
+#include "RHI/vulkan_commands.h"
+#include "RHI/vulkan_device.h"
+#include "RHI/vulkan_instance.h"
+#include "RHI/vulkan_pipeline.h"
+#include "RHI/vulkan_renderpass.h"
+#include "RHI/vulkan_surface.h"
+#include "RHI/vulkan_swapchain.h"
+#include "RHI/vulkan_sync.h"
 #include "core/window.h"
 
 static uint32_t currentFrame = 0;
@@ -148,9 +146,7 @@ static void cleanUp(void) {
   destroyPipeLine();
   destroyRenderPass();
   destroySwapChain();
-  destroyUniformBuffer();
-  destroyIndexBuffer();
-  destroyVertexBuffer();
+  destroyVulkanBuffer();
   destroyDevice();
   destroySurface();
   destroyInstance();

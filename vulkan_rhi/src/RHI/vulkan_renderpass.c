@@ -1,6 +1,6 @@
-#include "core/renderpass.h"
-#include "core/device.h"
-#include "core/swapchain.h"
+#include "RHI/vulkan_renderpass.h"
+#include "RHI/vulkan_device.h"
+#include "RHI/vulkan_swapchain.h"
 
 // std
 #include <stdio.h>

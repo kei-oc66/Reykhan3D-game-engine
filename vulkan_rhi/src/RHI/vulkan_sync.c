@@ -1,6 +1,6 @@
-#include "core/sync.h"
-#include "core/device.h"
-#include "core/swapchain.h"
+#include "vulkan_rhi/include/RHI/vulkan_sync.h"
+#include "RHI/vulkan_device.h"
+#include "RHI/vulkan_swapchain.h"
 
 //  std
 #include <stdio.h>
